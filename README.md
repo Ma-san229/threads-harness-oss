@@ -42,3 +42,52 @@ python3 -m unittest discover -s test -p 'test_*.py'
 - [REST APIリファレンス](docs/api.md) / [OpenAPI 3.1](openapi.json)
 
 APIキーは環境内の全アカウントの管理権限です。別のお客様は別環境で運用してください。MCPやaccountId指定によるアカウント選択を、権限の分離と混同しないでください。
+
+## Cloudflareへのデプロイ
+
+### 必要なシークレット
+
+以下のシークレットをCloudflare Dashboardで設定してください：
+
+#### GitHub Actions用（リポジトリシークレット）
+- `CLOUDFLARE_API_TOKEN`: Cloudflare APIトークン（Workers編集権限が必要）
+- `CLOUDFLARE_ACCOUNT_ID`: CloudflareアカウントID
+
+#### Worker実行時用（Cloudflare Dashboard > Workers > 環境変数）
+- `API_KEY`: REST API認証キー（任意の強力な文字列）
+- `TOKEN_ENCRYPTION_KEY`: トークン暗号化キー（32バイトのbase64エンコード文字列、`openssl rand -base64 32`で生成）
+- `ADMIN_SSO_SECRET`: （オプション）SSO用シークレット（32文字以上）
+- `THREADS_APP_ACCESS_TOKEN`: （オプション）Meta Threads Appアクセストークン
+
+### デプロイ手順
+
+1. D1データベースを作成:
+   ```bash
+   wrangler d1 create threads-harness
+   ```
+
+2. `wrangler.jsonc`の`database_id`を更新（上記コマンドの出力から取得）
+
+3. マイグレーションを実行:
+   ```bash
+   wrangler d1 migrations apply threads-harness
+   ```
+
+4. プレビュー環境へデプロイ:
+   ```bash
+   npm run build
+   wrangler deploy --env preview
+   ```
+
+5. 本番環境へデプロイ:
+   ```bash
+   npm run build
+   wrangler deploy --env production
+   ```
+
+### 公開ホスト名
+
+- プレビュー: `threads-harness-preview.manome-dev.com` （計画中）
+- 本番: `threads-harness.manome-dev.com` （計画中）
+
+※ DNSレコードは別途設定が必要です。Cloudflare Dashboardで上記ホスト名をWorkerに紐付けてください。
